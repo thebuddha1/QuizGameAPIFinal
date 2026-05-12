@@ -16,7 +16,7 @@ public class QuizSessionDto
     public bool IsOwner { get; set; }
 
     public int? ParticipantId { get; set; }
-
+    public string? ParticipantNickname { get; set; }
     public bool HasAnswered { get; set; }
     public int? SelectedAnswerId { get; set; }
     public bool? IsCorrect { get; set; }

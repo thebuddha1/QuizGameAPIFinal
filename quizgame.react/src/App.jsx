@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import JoinQuiz from "./pages/JoinQuiz";
 import ManageSession from "./pages/ManageSession";
+import EditQuiz from "./pages/EditQuiz";
 
 function App() {
 
@@ -35,10 +36,9 @@ function App() {
 
                     <Route path="join/:quizId" element={<JoinQuiz />} />
 
-                    <Route
-                        path="session/:sessionId"
-                        element={<ManageSession />}
-                    />
+                    <Route path="session/:sessionId" element={<ManageSession />} />
+
+                    <Route path="edit/:id" element={<EditQuiz />} />
 
                 </Route>
 

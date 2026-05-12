@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuizGame.Shared", "QuizGame
 EndProject
 Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "quizgame.react", "quizgame.react\quizgame.react.esproj", "{1CB620ED-3FE2-D6DB-8FFB-6FA03AA28D94}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuizGame.SignalR", "QuizGame.SignalR\QuizGame.SignalR.csproj", "{BC53CF25-3643-4C09-8B5B-FBEE1B3E4960}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +37,10 @@ Global
 		{1CB620ED-3FE2-D6DB-8FFB-6FA03AA28D94}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1CB620ED-3FE2-D6DB-8FFB-6FA03AA28D94}.Release|Any CPU.Build.0 = Release|Any CPU
 		{1CB620ED-3FE2-D6DB-8FFB-6FA03AA28D94}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{BC53CF25-3643-4C09-8B5B-FBEE1B3E4960}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC53CF25-3643-4C09-8B5B-FBEE1B3E4960}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC53CF25-3643-4C09-8B5B-FBEE1B3E4960}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC53CF25-3643-4C09-8B5B-FBEE1B3E4960}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

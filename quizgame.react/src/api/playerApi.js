@@ -2,16 +2,27 @@ const API_BASE = "/api/player";
 
 export async function joinQuiz(data) {
 
+    const token = localStorage.getItem("token");
+
+    const headers = {
+        "Content-Type": "application/json"
+    };
+
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+
     const res = await fetch(`${API_BASE}/join`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
+        headers,
         body: JSON.stringify(data)
     });
 
     if (!res.ok) {
-        throw new Error("Failed to join quiz");
+
+        const text = await res.text();
+
+        throw new Error(text || "Failed to join quiz");
     }
 
     return await res.json();
@@ -28,8 +39,9 @@ export async function submitAnswer(data) {
     });
 
     if (!res.ok) {
-        throw new Error("Failed to submit answer");
-    }
 
-    return await res.json();
+        const text = await res.text();
+
+        throw new Error(text || "Failed to submit answer");
+    }
 }

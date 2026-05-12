@@ -32,8 +32,42 @@ export default function JoinQuiz() {
                 `/session/${result.sessionId}?participantId=${result.participantId}`
             );
         }
-        catch {
-            setError("Failed to join quiz");
+        catch (err) {
+
+            if (
+                err.message.includes("started")
+            ) {
+
+                setError(
+                    "This quiz has already started. Joining is closed."
+                );
+
+                return;
+            }
+
+            if (
+                err.message.includes("owner")
+            ) {
+
+                setError(
+                    "Quiz owners cannot join their own quiz as participants."
+                );
+
+                return;
+            }
+
+            if (
+                err.message.includes("Invalid PIN")
+            ) {
+
+                setError(
+                    "Incorrect PIN code."
+                );
+
+                return;
+            }
+
+            setError(err.message);
         }
     }
 
@@ -93,8 +127,24 @@ export default function JoinQuiz() {
                 </form>
 
                 {error && (
-                    <div className="text-danger mt-3 text-center">
-                        {error}
+
+                    <div className="mt-3 text-center">
+
+                        <div className="text-danger mb-3">
+                            {error}
+                        </div>
+
+                        {error.includes("started") && (
+
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => navigate("/")}
+                            >
+                                Return Home
+                            </button>
+
+                        )}
+
                     </div>
                 )}
 

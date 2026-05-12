@@ -1,8 +1,20 @@
 import { useEffect, useState } from "react";
-import { getMyQuizzes, deleteQuiz } from "../api/quizApi";
-import { Link } from "react-router-dom";
+
+import {
+    getMyQuizzes,
+    deleteQuiz
+} from "../api/quizApi";
+
+import { openSession } from "../api/sessionApi";
+
+import {
+    Link,
+    useNavigate
+} from "react-router-dom";
 
 export default function MyQuizzes() {
+
+    const navigate = useNavigate();
 
     const [quizzes, setQuizzes] = useState([]);
 
@@ -11,6 +23,7 @@ export default function MyQuizzes() {
     }, []);
 
     async function load() {
+
         const token = localStorage.getItem("token");
 
         const data = await getMyQuizzes(token);
@@ -19,6 +32,7 @@ export default function MyQuizzes() {
     }
 
     async function handleDelete(id) {
+
         const token = localStorage.getItem("token");
 
         await deleteQuiz(id, token);
@@ -26,8 +40,27 @@ export default function MyQuizzes() {
         load();
     }
 
+    async function handleOpen(id) {
+
+        try {
+
+            const sessionId =
+                await openSession(id);
+
+            navigate(`/session/${sessionId}`);
+
+        }
+        catch (err) {
+
+            alert(err.message);
+        }
+    }
+
     return (
-        <div className="container" style={{ maxWidth: "700px" }}>
+        <div
+            className="container"
+            style={{ maxWidth: "700px" }}
+        >
 
             <h2 className="text-center mb-4">
                 My Quizzes
@@ -49,20 +82,46 @@ export default function MyQuizzes() {
                             {q.title}
                         </Link>
 
-                        <div className="d-flex gap-2">
+                        <div className="d-flex gap-2 flex-wrap">
 
-                            <Link
-                                to={`/quiz/${q.id}`}
-                                className="btn btn-primary btn-sm"
+                            {q.hasActiveSession ? (
+
+                                <button
+                                    className="btn btn-warning btn-sm"
+                                    onClick={() =>
+                                        navigate(`/session/${q.activeSessionId}`)
+                                    }
+                                >
+                                    Return to Session
+                                </button>
+
+                            ) : (
+
+                                <button
+                                    className="btn btn-primary btn-sm"
+                                    onClick={() => handleOpen(q.id)}
+                                >
+                                    Open new quiz session
+                                </button>
+
+                            )}
+
+                            <button
+                                className="btn btn-secondary btn-sm"
+                                disabled={q.hasActiveSession}
+                                onClick={() =>
+                                    navigate(`/edit/${q.id}`)
+                                }
                             >
-                                Open
-                            </Link>
+                                Edit quiz
+                            </button>
 
                             <button
                                 className="btn btn-danger btn-sm"
+                                disabled={q.hasActiveSession}
                                 onClick={() => handleDelete(q.id)}
                             >
-                                Delete
+                                Delete quiz
                             </button>
 
                         </div>

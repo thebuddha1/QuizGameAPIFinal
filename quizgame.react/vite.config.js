@@ -12,11 +12,19 @@ export default defineConfig({
 
     server: {
         proxy: {
+
             '/api': {
                 target: 'https://localhost:7001',
                 changeOrigin: true,
                 secure: false,
             },
+
+            '/quizhub': {
+                target: 'https://localhost:7001',
+                changeOrigin: true,
+                secure: false,
+                ws: true
+            }
         },
     },
 })

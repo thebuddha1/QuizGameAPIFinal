@@ -50,7 +50,24 @@ public class QuizService : IQuizService
 
     public async Task UpdateAsync(Quiz quiz)
     {
-        _context.Quizzes.Update(quiz);
+        var existingQuiz = await _context.Quizzes
+        .Include(q => q.Questions)
+            .ThenInclude(q => q.AnswerOptions)
+        .FirstAsync(q => q.Id == quiz.Id);
+
+        existingQuiz.Title = quiz.Title;
+
+        _context.AnswersOptions.RemoveRange(
+            existingQuiz.Questions
+                .SelectMany(q => q.AnswerOptions)
+        );
+
+        _context.Questions.RemoveRange(
+            existingQuiz.Questions
+        );
+
+        existingQuiz.Questions = quiz.Questions;
+
         await _context.SaveChangesAsync();
     }
 

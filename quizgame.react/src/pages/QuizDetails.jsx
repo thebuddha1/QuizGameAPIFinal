@@ -1,8 +1,20 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { getQuizDetails } from "../api/quizApi";
+
+import {
+    useNavigate,
+    useParams
+} from "react-router-dom";
+
+import {
+    deleteQuiz,
+    getQuizDetails
+} from "../api/quizApi";
+
+import { openSession } from "../api/sessionApi";
 
 export default function QuizDetails() {
+
+    const navigate = useNavigate();
 
     const { id } = useParams();
 
@@ -13,9 +25,50 @@ export default function QuizDetails() {
     }, []);
 
     async function load() {
-        const data = await getQuizDetails(id);
 
-        setQuiz(data);
+        try {
+
+            const data =
+                await getQuizDetails(id);
+
+            setQuiz(data);
+        }
+        catch (err) {
+
+            alert(err.message);
+        }
+    }
+
+    async function handleOpenQuiz() {
+
+        try {
+
+            const sessionId =
+                await openSession(id);
+
+            navigate(`/session/${sessionId}`);
+        }
+        catch (err) {
+
+            alert(err.message);
+        }
+    }
+
+    async function handleDelete() {
+
+        try {
+
+            const token =
+                localStorage.getItem("token");
+
+            await deleteQuiz(id, token);
+
+            navigate("/my-quizzes");
+        }
+        catch (err) {
+
+            alert(err.message);
+        }
     }
 
     if (!quiz) {
@@ -23,7 +76,10 @@ export default function QuizDetails() {
     }
 
     return (
-        <div className="container" style={{ maxWidth: "800px" }}>
+        <div
+            className="container"
+            style={{ maxWidth: "800px" }}
+        >
 
             <div className="card shadow-sm p-4">
 
@@ -67,15 +123,20 @@ export default function QuizDetails() {
                                     <li
                                         key={aIndex}
                                         className={`list-group-item d-flex justify-content-between align-items-center
-                                        ${a.isCorrect ? "list-group-item-success fw-bold" : ""}`}
+                                        ${a.isCorrect
+                                                ? "list-group-item-success fw-bold"
+                                                : ""
+                                            }`}
                                     >
 
                                         {a.text}
 
                                         {a.isCorrect && (
+
                                             <span className="badge bg-success">
                                                 Correct
                                             </span>
+
                                         )}
 
                                     </li>
@@ -90,10 +151,46 @@ export default function QuizDetails() {
 
                 </div>
 
-                <div className="d-grid mt-4">
+                <div className="d-flex flex-wrap gap-2 justify-content-center mt-4">
 
-                    <button className="btn btn-primary">
-                        Open Quiz
+                    {quiz.hasActiveSession ? (
+
+                        <button
+                            className="btn btn-warning"
+                            onClick={() =>
+                                navigate(`/session/${quiz.activeSessionId}`)
+                            }
+                        >
+                            Rejoin Session
+                        </button>
+
+                    ) : (
+
+                        <button
+                            className="btn btn-primary"
+                            onClick={handleOpenQuiz}
+                        >
+                            Open Quiz
+                        </button>
+
+                    )}
+
+                    <button
+                        className="btn btn-secondary"
+                        disabled={quiz.hasActiveSession}
+                        onClick={() =>
+                            navigate(`/edit/${quiz.id}`)
+                        }
+                    >
+                        Edit Quiz
+                    </button>
+
+                    <button
+                        className="btn btn-danger"
+                        disabled={quiz.hasActiveSession}
+                        onClick={handleDelete}
+                    >
+                        Delete Quiz
                     </button>
 
                 </div>

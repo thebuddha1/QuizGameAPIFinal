@@ -16,6 +16,11 @@ import {
     useSearchParams
 } from "react-router-dom";
 
+import {
+    getConnection,
+    startConnection
+} from "../api/signalr";
+
 export default function ManageSession() {
 
     const navigate = useNavigate();
@@ -24,9 +29,13 @@ export default function ManageSession() {
 
     const [searchParams] = useSearchParams();
 
-    const participantId = searchParams.get("participantId");
+    const participantId =
+        searchParams.get("participantId");
 
     const [session, setSession] = useState(null);
+
+    const [selectedAnswerId, setSelectedAnswerId] =
+        useState(null);
 
     async function loadSession() {
 
@@ -40,9 +49,83 @@ export default function ManageSession() {
 
     useEffect(() => {
 
-        loadSession();
+        let cancelled = false;
 
-    }, []);
+        async function initialize() {
+
+            try {
+
+                await loadSession();
+
+                const connection =
+                    await startConnection();
+
+                if (cancelled) {
+                    return;
+                }
+
+                connection.off("SessionUpdated");
+
+                connection.on(
+                    "SessionUpdated",
+                    async () => {
+
+                        console.log("Session updated");
+
+                        await loadSession();
+                    }
+                );
+
+                if (connection.state === "Connected") {
+
+                    await connection.invoke(
+                        "JoinSessionGroup",
+                        Number(sessionId)
+                    );
+                }
+            }
+            catch (err) {
+
+                console.error(err);
+            }
+        }
+
+        initialize();
+
+        return () => {
+
+            cancelled = true;
+
+            const connection = getConnection();
+
+            if (
+                connection &&
+                connection.state === "Connected"
+            ) {
+
+                connection.invoke(
+                    "LeaveSessionGroup",
+                    Number(sessionId)
+                );
+            }
+        };
+
+    }, [sessionId]);
+
+    useEffect(() => {
+
+        if (session?.selectedAnswerId) {
+
+            setSelectedAnswerId(
+                session.selectedAnswerId
+            );
+        }
+        else {
+
+            setSelectedAnswerId(null);
+        }
+
+    }, [session?.currentQuestion?.id]);
 
     if (!session) {
         return <p>Loading...</p>;
@@ -51,22 +134,16 @@ export default function ManageSession() {
     async function handleStart() {
 
         await startSession(sessionId);
-
-        loadSession();
     }
 
     async function handleLock() {
 
         await lockQuestion(sessionId);
-
-        loadSession();
     }
 
     async function handleNext() {
 
         await nextQuestion(sessionId);
-
-        loadSession();
     }
 
     async function handleEnd() {
@@ -76,16 +153,18 @@ export default function ManageSession() {
         navigate("/my-quizzes");
     }
 
-    async function handleSubmit(answerId) {
+    async function handleSubmit() {
+
+        if (!selectedAnswerId) {
+            return;
+        }
 
         await submitAnswer({
             sessionId: session.sessionId,
             participantId: session.participantId,
             questionId: session.currentQuestion.id,
-            answerOptionId: answerId
+            answerOptionId: selectedAnswerId
         });
-
-        loadSession();
     }
 
     return (
@@ -112,27 +191,40 @@ export default function ManageSession() {
 
                 </div>
 
-                {!session.isStarted && !session.isFinished && (
+                {!session.isOwner &&
+                    session.participantNickname && (
 
-                    <div className="text-center">
+                        <div className="text-center mb-4">
 
-                        <p className="mb-3">
-                            Waiting to start...
-                        </p>
+                            <span className="badge bg-primary fs-6">
+                                Playing as: {session.participantNickname}
+                            </span>
 
-                        {session.isOwner && (
+                        </div>
+                    )}
 
-                            <button
-                                className="btn btn-primary"
-                                onClick={handleStart}
-                            >
-                                Start Quiz
-                            </button>
+                {!session.isStarted &&
+                    !session.isFinished && (
 
-                        )}
+                        <div className="text-center">
 
-                    </div>
-                )}
+                            <p className="mb-3">
+                                Waiting to start...
+                            </p>
+
+                            {session.isOwner && (
+
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={handleStart}
+                                >
+                                    Start Quiz
+                                </button>
+
+                            )}
+
+                        </div>
+                    )}
 
                 {session.isFinished && (
 
@@ -194,14 +286,14 @@ export default function ManageSession() {
                                                 <input
                                                     type="radio"
                                                     className="form-check-input me-2"
-                                                    checked={session.selectedAnswerId === a.id}
+                                                    checked={selectedAnswerId === a.id}
                                                     disabled={
                                                         session.hasAnswered ||
                                                         session.isLocked ||
                                                         session.isOwner
                                                     }
                                                     onChange={() =>
-                                                        handleSubmit(a.id)
+                                                        setSelectedAnswerId(a.id)
                                                     }
                                                 />
 
@@ -238,12 +330,31 @@ export default function ManageSession() {
                                 </div>
 
                                 {!session.isOwner &&
+                                    !session.hasAnswered &&
+                                    !session.isLocked && (
+
+                                        <div className="text-center mb-3">
+
+                                            <button
+                                                className="btn btn-primary"
+                                                disabled={!selectedAnswerId}
+                                                onClick={handleSubmit}
+                                            >
+                                                Submit Answer
+                                            </button>
+
+                                        </div>
+                                    )}
+
+                                {!session.isOwner &&
                                     session.hasAnswered && (
 
-                                        <div className={`alert ${session.isCorrect
-                                                ? "alert-success"
-                                                : "alert-danger"
-                                            } mt-3 text-center`}>
+                                        <div
+                                            className={`alert ${session.isCorrect
+                                                    ? "alert-success"
+                                                    : "alert-danger"
+                                                } mt-3 text-center`}
+                                        >
 
                                             {session.isCorrect
                                                 ? "Correct!"

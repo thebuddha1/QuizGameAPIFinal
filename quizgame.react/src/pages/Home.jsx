@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { getQuizzes } from "../api/api";
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
 
     const [active, setActive] = useState([]);
     const [other, setOther] = useState([]);
+    const navigate = useNavigate();
 
     async function load() {
 
@@ -48,7 +50,10 @@ export default function Home() {
                         >
                             <strong>{q.title}</strong>
 
-                            <button className="btn btn-primary btn-sm">
+                            <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => navigate(`/join/${q.id}`)}
+                            >
                                 Join
                             </button>
 

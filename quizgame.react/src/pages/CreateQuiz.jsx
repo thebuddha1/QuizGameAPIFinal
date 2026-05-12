@@ -1,27 +1,76 @@
-﻿import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { createQuiz } from "../api/quizApi";
+﻿import { useEffect, useState } from "react";
 
-export default function CreateQuiz() {
+import {
+    createQuiz,
+    getQuizDetails,
+    updateQuiz
+} from "../api/quizApi";
+
+import {
+    useNavigate,
+    useParams
+} from "react-router-dom";
+
+export default function CreateQuiz({ isEdit = false }) {
+
     const navigate = useNavigate();
+
+    const { id } = useParams();
 
     const [title, setTitle] = useState("");
 
     const [questions, setQuestions] = useState([
         {
             text: "",
-            timeLimitSeconds: 30,
             order: 0,
             answers: []
         }
     ]);
 
+    useEffect(() => {
+
+        if (!isEdit) {
+            return;
+        }
+
+        async function loadQuiz() {
+
+            try {
+
+                const quiz =
+                    await getQuizDetails(id);
+
+                setTitle(quiz.title);
+
+                setQuestions(
+                    quiz.questions.map(q => ({
+                        id: q.id,
+                        text: q.text,
+                        order: q.order,
+                        answers: q.answers.map(a => ({
+                            id: a.id,
+                            text: a.text,
+                            isCorrect: a.isCorrect
+                        }))
+                    }))
+                );
+            }
+            catch (err) {
+
+                alert(err.message);
+            }
+        }
+
+        loadQuiz();
+
+    }, [isEdit, id]);
+
     function addQuestion() {
+
         setQuestions([
             ...questions,
             {
                 text: "",
-                timeLimitSeconds: 30,
                 order: questions.length,
                 answers: []
             }
@@ -29,16 +78,23 @@ export default function CreateQuiz() {
     }
 
     function removeQuestion(index) {
-        setQuestions(questions.filter((_, i) => i !== index));
+
+        setQuestions(
+            questions.filter((_, i) => i !== index)
+        );
     }
 
     function updateQuestion(index, field, value) {
+
         const updated = [...questions];
+
         updated[index][field] = value;
+
         setQuestions(updated);
     }
 
     function addAnswer(qIndex) {
+
         const updated = [...questions];
 
         updated[qIndex].answers.push({
@@ -50,18 +106,13 @@ export default function CreateQuiz() {
     }
 
     function removeAnswer(qIndex, aIndex) {
+
         const updated = [...questions];
 
         updated[qIndex].answers =
-            updated[qIndex].answers.filter((_, i) => i !== aIndex);
-
-        setQuestions(updated);
-    }
-
-    function updateAnswer(qIndex, aIndex, field, value) {
-        const updated = [...questions];
-
-        updated[qIndex].answers[aIndex][field] = value;
+            updated[qIndex].answers.filter(
+                (_, i) => i !== aIndex
+            );
 
         setQuestions(updated);
     }
@@ -71,12 +122,16 @@ export default function CreateQuiz() {
         e.preventDefault();
 
         if (!title.trim()) {
+
             alert("Quiz title cannot be empty");
+
             return;
         }
 
         if (questions.length === 0) {
+
             alert("At least one question is required");
+
             return;
         }
 
@@ -85,24 +140,30 @@ export default function CreateQuiz() {
             const q = questions[i];
 
             if (!q.text.trim()) {
-                alert(`Question ${i + 1} cannot be empty`);
-                return;
-            }
 
-            if (q.timeLimitSeconds <= 0) {
-                alert(`Question ${i + 1} must have a valid time limit`);
+                alert(`Question ${i + 1} cannot be empty`);
+
                 return;
             }
 
             if (q.answers.length < 2) {
-                alert(`Question ${i + 1} needs at least 2 answers`);
+
+                alert(
+                    `Question ${i + 1} needs at least 2 answers`
+                );
+
                 return;
             }
 
-            const hasCorrect = q.answers.some(a => a.isCorrect);
+            const correctCount =
+                q.answers.filter(a => a.isCorrect).length;
 
-            if (!hasCorrect) {
-                alert(`Question ${i + 1} must have at least one correct answer`);
+            if (correctCount !== 1) {
+
+                alert(
+                    `Question ${i + 1} must have exactly one correct answer`
+                );
+
                 return;
             }
 
@@ -111,7 +172,11 @@ export default function CreateQuiz() {
                 const a = q.answers[j];
 
                 if (!a.text.trim()) {
-                    alert(`Answer ${j + 1} in Question ${i + 1} cannot be empty`);
+
+                    alert(
+                        `Answer ${j + 1} in Question ${i + 1} cannot be empty`
+                    );
+
                     return;
                 }
             }
@@ -120,43 +185,69 @@ export default function CreateQuiz() {
         const payload = {
             title: title.trim(),
             questions: questions.map((q, index) => ({
-                ...q,
+                id: q.id,
                 text: q.text.trim(),
                 order: index,
                 answers: q.answers.map(a => ({
-                    ...a,
-                    text: a.text.trim()
+                    id: a.id,
+                    text: a.text.trim(),
+                    isCorrect: a.isCorrect
                 }))
             }))
         };
 
         try {
 
-            const token = localStorage.getItem("token");
+            const token =
+                localStorage.getItem("token");
 
-            const createdQuizId = await createQuiz(payload, token);
+            if (isEdit) {
 
-            navigate(`/quiz/${createdQuizId}`);
+                await updateQuiz(
+                    id,
+                    payload,
+                    token
+                );
+
+                navigate(`/quiz/${id}`);
+            }
+            else {
+
+                const createdQuizId =
+                    await createQuiz(
+                        payload,
+                        token
+                    );
+
+                navigate(`/quiz/${createdQuizId}`);
+            }
         }
         catch (err) {
 
             alert(err.message);
         }
     }
-   
 
     return (
-        <div className="container" style={{ maxWidth: "800px" }}>
+        <div
+            className="container"
+            style={{ maxWidth: "800px" }}
+        >
 
             <div className="card shadow-sm p-4">
 
                 <h2 className="text-center mb-4">
-                    Create Quiz
+
+                    {isEdit
+                        ? "Edit Quiz"
+                        : "Create Quiz"}
+
                 </h2>
 
                 <form onSubmit={handleSubmit}>
 
                     <div className="mb-4">
+
                         <label className="form-label">
                             Title
                         </label>
@@ -164,8 +255,11 @@ export default function CreateQuiz() {
                         <input
                             className="form-control"
                             value={title}
-                            onChange={(e) => setTitle(e.target.value)}
+                            onChange={(e) =>
+                                setTitle(e.target.value)
+                            }
                         />
+
                     </div>
 
                     <h4 className="mb-3">
@@ -182,6 +276,7 @@ export default function CreateQuiz() {
                             >
 
                                 <div className="mb-2">
+
                                     <input
                                         className="form-control"
                                         placeholder="Question text"
@@ -194,22 +289,7 @@ export default function CreateQuiz() {
                                             )
                                         }
                                     />
-                                </div>
 
-                                <div className="mb-2">
-                                    <input
-                                        className="form-control"
-                                        type="number"
-                                        placeholder="Time limit"
-                                        value={q.timeLimitSeconds}
-                                        onChange={(e) =>
-                                            updateQuestion(
-                                                qIndex,
-                                                "timeLimitSeconds",
-                                                Number(e.target.value)
-                                            )
-                                        }
-                                    />
                                 </div>
 
                                 <div className="d-flex flex-column gap-2 mb-2">
@@ -225,34 +305,47 @@ export default function CreateQuiz() {
                                                 className="form-control"
                                                 placeholder="Answer"
                                                 value={a.text}
-                                                onChange={(e) =>
-                                                    updateAnswer(
-                                                        qIndex,
-                                                        aIndex,
-                                                        "text",
-                                                        e.target.value
-                                                    )
-                                                }
+                                                onChange={(e) => {
+
+                                                    const updated = [...questions];
+
+                                                    updated[qIndex]
+                                                        .answers[aIndex]
+                                                        .text = e.target.value;
+
+                                                    setQuestions(updated);
+                                                }}
                                             />
 
                                             <input
-                                                type="checkbox"
+                                                type="radio"
+                                                name={`correct-${qIndex}`}
                                                 checked={a.isCorrect}
-                                                onChange={(e) =>
-                                                    updateAnswer(
-                                                        qIndex,
-                                                        aIndex,
-                                                        "isCorrect",
-                                                        e.target.checked
-                                                    )
-                                                }
+                                                onChange={() => {
+
+                                                    const updated = [...questions];
+
+                                                    updated[qIndex].answers =
+                                                        updated[qIndex].answers.map(
+                                                            (answer, idx) => ({
+                                                                ...answer,
+                                                                isCorrect:
+                                                                    idx === aIndex
+                                                            })
+                                                        );
+
+                                                    setQuestions(updated);
+                                                }}
                                             />
 
                                             <button
                                                 type="button"
                                                 className="btn btn-outline-danger btn-sm"
                                                 onClick={() =>
-                                                    removeAnswer(qIndex, aIndex)
+                                                    removeAnswer(
+                                                        qIndex,
+                                                        aIndex
+                                                    )
                                                 }
                                             >
                                                 ✕
@@ -269,7 +362,9 @@ export default function CreateQuiz() {
                                     <button
                                         type="button"
                                         className="btn btn-outline-primary btn-sm"
-                                        onClick={() => addAnswer(qIndex)}
+                                        onClick={() =>
+                                            addAnswer(qIndex)
+                                        }
                                     >
                                         + Answer
                                     </button>
@@ -277,7 +372,9 @@ export default function CreateQuiz() {
                                     <button
                                         type="button"
                                         className="btn btn-outline-danger btn-sm"
-                                        onClick={() => removeQuestion(qIndex)}
+                                        onClick={() =>
+                                            removeQuestion(qIndex)
+                                        }
                                     >
                                         - Remove Question
                                     </button>
@@ -308,7 +405,11 @@ export default function CreateQuiz() {
                             type="submit"
                             className="btn btn-primary"
                         >
-                            Create Quiz
+
+                            {isEdit
+                                ? "Save Changes"
+                                : "Create Quiz"}
+
                         </button>
 
                     </div>

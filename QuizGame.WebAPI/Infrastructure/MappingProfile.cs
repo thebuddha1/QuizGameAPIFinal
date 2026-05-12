@@ -9,15 +9,59 @@ public class MappingProfile : Profile
     public MappingProfile()
     {
         CreateMap<CreateQuizDto, Quiz>(MemberList.Source)
+            .ForMember(dest => dest.UserId, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
             .ForMember(dest => dest.PinCode, opt => opt.MapFrom(_ => GeneratePin()))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(_ => QuizState.Draft))
             .ForMember(dest => dest.Questions, opt => opt.MapFrom(src => src.Questions));
+        //
+        CreateMap<UpdateQuizDto, Quiz>(MemberList.Source)
+            .ForMember(dest => dest.UserId, opt => opt.Ignore())
+            .ForMember(dest => dest.PinCode, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
+            .ForMember(dest => dest.Status, opt => opt.Ignore())
+            .ForMember(dest => dest.Questions, opt => opt.MapFrom(src => src.Questions));
 
-        CreateMap<Quiz, QuizListItemDto>(MemberList.Destination);
+        CreateMap<UpdateQuestionDto, Question>(MemberList.Source)
+            .ForMember(dest => dest.AnswerOptions, opt => opt.MapFrom(src => src.Answers));
+        
+        CreateMap<UpdateAnswerOptionDto, AnswerOption>(MemberList.Source);
+        //
+
+        CreateMap<Quiz, QuizListItemDto>(MemberList.Destination)
+            .ForMember(
+                dest => dest.HasActiveSession,
+                opt => opt.MapFrom(src =>
+                    src.Sessions.Any(s =>
+                        s.State != QuizSessionState.Finished))
+            )
+            .ForMember(
+                dest => dest.ActiveSessionId,
+                opt => opt.MapFrom(src =>
+                    src.Sessions
+                        .Where(s => s.State != QuizSessionState.Finished)
+                        .Select(s => (int?)s.Id)
+                        .FirstOrDefault())
+            );
 
         CreateMap<Quiz, QuizDetailsDto>(MemberList.Destination)
-            .ForMember(dest => dest.Questions, opt => opt.MapFrom(src => src.Questions));
+            .ForMember(
+                dest => dest.Questions,
+                opt => opt.MapFrom(src => src.Questions))
+            .ForMember(
+                dest => dest.HasActiveSession,
+                opt => opt.MapFrom(src =>
+                    src.Sessions.Any(s =>
+                        s.State != QuizSessionState.Finished))
+            )
+            .ForMember(
+                dest => dest.ActiveSessionId,
+                opt => opt.MapFrom(src =>
+                    src.Sessions
+                        .Where(s => s.State != QuizSessionState.Finished)
+                        .Select(s => (int?)s.Id)
+                        .FirstOrDefault())
+            );
 
         CreateMap<CreateQuestionDto, Question>(MemberList.Source)
             .ForMember(dest => dest.AnswerOptions, opt => opt.MapFrom(src => src.Answers));
@@ -44,8 +88,8 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.ParticipantId, opt => opt.Ignore())
             .ForMember(dest => dest.HasAnswered, opt => opt.Ignore())
             .ForMember(dest => dest.SelectedAnswerId, opt => opt.Ignore())
-            .ForMember(dest => dest.IsCorrect, opt => opt.Ignore());
-
+            .ForMember(dest => dest.IsCorrect, opt => opt.Ignore())
+            .ForMember(dest => dest.ParticipantNickname, opt => opt.Ignore());
 
         CreateMap<UserRequestDto, User>(MemberList.Source)
             .ForSourceMember(src => src.Password, opt => opt.DoNotValidate())

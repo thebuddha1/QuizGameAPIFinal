@@ -60,9 +60,9 @@ public class QuizController : ControllerBase
     [HttpGet("my")]
     public async Task<ActionResult<List<QuizListItemDto>>> GetMyQuizzes()
     {
-        var userId = _userManager.GetUserId(User);
+        var userId = User.FindFirst("id")?.Value;
 
-        if (userId == null)
+        if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
 
         var quizzes = await _quizService.GetAllAsync();
@@ -95,8 +95,8 @@ public class QuizController : ControllerBase
             if (q.Answers == null || q.Answers.Count < 2)
                 return BadRequest("Each question needs at least 2 answers");
 
-            if (!q.Answers.Any(a => a.IsCorrect))
-                return BadRequest("Each question must have at least one correct answer");
+            if (q.Answers.Count(a => a.IsCorrect) != 1)
+                return BadRequest("Each question must have one correct answer");
         }
 
         for (int i = 0; i < model.Questions.Count; i++)
@@ -104,23 +104,114 @@ public class QuizController : ControllerBase
             model.Questions[i].Order = i;
         }
 
-        var userId = _userManager.GetUserId(User);
-        if (userId == null)
+        var userId = User.FindFirst("id")?.Value;
+
+        if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized();
 
         var quiz = _mapper.Map<Quiz>(model);
+
         quiz.UserId = userId;
 
         var created = await _quizService.CreateAsync(quiz);
 
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, created.Id);
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = created.Id },
+            created.Id
+        );
+    }
+
+    [Authorize]
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(
+    int id,
+    [FromBody] UpdateQuizDto model)
+    {
+        var quiz = await _quizService.GetByIdAsync(id);
+
+        if (quiz == null)
+            return NotFound();
+
+        var userId = User.FindFirst("id")?.Value;
+
+        if (quiz.UserId != userId)
+            return Forbid();
+
+        var hasActiveSession =
+            quiz.Sessions.Any(s =>
+                s.State != QuizSessionState.Finished);
+
+        if (hasActiveSession)
+        {
+            return BadRequest(
+                "Cannot edit quiz with active session");
+        }
+
+        if (model.Questions == null ||
+            !model.Questions.Any())
+        {
+            return BadRequest(
+                "At least one question required");
+        }
+
+        foreach (var q in model.Questions)
+        {
+            if (q.Answers == null ||
+                q.Answers.Count < 2)
+            {
+                return BadRequest(
+                    "Each question needs at least 2 answers");
+            }
+
+            var correctCount =
+                q.Answers.Count(a => a.IsCorrect);
+
+            if (correctCount != 1)
+            {
+                return BadRequest(
+                    "Each question must have exactly one correct answer");
+            }
+        }
+
+        for (int i = 0; i < model.Questions.Count; i++)
+        {
+            model.Questions[i].Order = i;
+        }
+
+        var updatedQuiz =
+            _mapper.Map<Quiz>(model);
+
+        updatedQuiz.Id = id;
+
+        updatedQuiz.UserId = quiz.UserId;
+        updatedQuiz.PinCode = quiz.PinCode;
+        updatedQuiz.CreatedAt = quiz.CreatedAt;
+        updatedQuiz.Status = quiz.Status;
+
+        await _quizService.UpdateAsync(updatedQuiz);
+
+        return NoContent();
     }
 
     [Authorize]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
+        var quiz = await _quizService.GetByIdAsync(id);
+
+        if (quiz == null)
+            return NotFound();
+
+        var hasActiveSession = quiz.Sessions.Any(s => s.State != QuizSessionState.Finished);
+
+        if (hasActiveSession)
+        {
+            return BadRequest("Cannot delete quiz with active session");
+        }
+
         await _quizService.DeleteAsync(id);
+
         return NoContent();
     }
 }

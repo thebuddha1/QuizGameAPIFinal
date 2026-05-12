@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\QuizGame.DataAccess\QuizGame.DataAccess.csproj" />
     <ProjectReference Include="..\QuizGame.Shared\QuizGame.Shared.csproj" />
+    <ProjectReference Include="..\QuizGame.SignalR\QuizGame.SignalR.csproj" />
   </ItemGroup>
 
 </Project>
