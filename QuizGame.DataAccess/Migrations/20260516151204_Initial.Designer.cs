@@ -12,8 +12,8 @@ using QuizGame.DataAccess;
 namespace QuizGame.DataAccess.Migrations
 {
     [DbContext(typeof(QuizGameDbContext))]
-    [Migration("20260505160839_freshdb")]
-    partial class freshdb
+    [Migration("20260516151204_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

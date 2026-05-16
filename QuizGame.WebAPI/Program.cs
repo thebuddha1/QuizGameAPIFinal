@@ -184,9 +184,14 @@ using (var scope = app.Services.CreateScope())
                 Microsoft.AspNetCore.Identity
                 .UserManager<User>>();
 
-    await DbInitializer.Initialize(
-        context,
-        userManager);
+    if (!app.Environment.IsEnvironment("Testing"))
+    {
+        await DbInitializer.Initialize(
+            context,
+            userManager);
+    }
 }
 
-app.Run();
+await app.RunAsync();
+
+public partial class Program { }
